@@ -1,4 +1,4 @@
-int32 timestamp
+float64 timestamp
 float32 battery_voltage
 bool arm
 
@@ -26,3 +26,5 @@ float32 yawspeed
 float32 internal_pressure
 float32 external_pressure
 int32 heading
+
+float32[8] thruster_pwms
