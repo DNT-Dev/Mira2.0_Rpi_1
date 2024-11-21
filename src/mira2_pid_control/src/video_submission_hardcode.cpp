@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
     if (software_arm_flag == true) {
       cmd_pwm.mode = "STABILIZE";
       ros::Time time_now = ros::Time::now();
-      cmd_pwm.arm = true;
+      cmd_pwm.arm = false;
       if (software_arm_flag == true) {
         float pid_depth = depth.pid_control(
             depth_error, (time_now - init_time).toSec(), false);
@@ -77,6 +77,7 @@ int main(int argc, char **argv) {
           cmd_pwm.yaw = 1500;
           depth.emptyError();
         } else if ((time_now - start_routine).toSec() < (delay + 3)) {
+          cmd_pwm.arm = true;
           cmd_pwm.forward = 1500;
           cmd_pwm.lateral = 1500;
           cmd_pwm.thrust = pid_depth;
