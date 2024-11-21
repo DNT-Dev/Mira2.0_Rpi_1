@@ -73,6 +73,7 @@ int main(int argc, char **argv) {
         if ((time_now - start_routine).toSec() < delay) {
           cmd_pwm.forward = 1500;
           cmd_pwm.lateral = 1500;
+          cmd_pwm.arm = true;
           cmd_pwm.thrust = 1500;
           cmd_pwm.yaw = 1500;
           depth.emptyError();
@@ -84,24 +85,28 @@ int main(int argc, char **argv) {
           cmd_pwm.yaw = 1500;
           std::cout << "sinking ";
         } else if ((time_now - start_routine).toSec() < (delay + 8)) {
+          cmd_pwm.arm = true;
           cmd_pwm.forward = 1800;
           cmd_pwm.lateral = 1500;
           cmd_pwm.thrust = pid_depth;
           cmd_pwm.yaw = 1500;
           std::cout << "forward";
         } else if ((time_now - start_routine).toSec() < (delay + 10.25)) {
+          cmd_pwm.arm = true;
           cmd_pwm.forward = 1500;
           cmd_pwm.lateral = 1500;
           cmd_pwm.thrust = pid_depth;
           cmd_pwm.yaw = 1800;
           std::cout << "yaw";
         } else if ((time_now - start_routine).toSec() < (delay + 15.25)) {
+          cmd_pwm.arm = true;
           cmd_pwm.forward = 1800;
           cmd_pwm.lateral = 1500;
           cmd_pwm.thrust = pid_depth;
           cmd_pwm.yaw = 1500;
           std::cout << "forward";
         } else {
+          cmd_pwm.arm = true;
           cmd_pwm.forward = 1500;
           cmd_pwm.lateral = 1500;
           cmd_pwm.thrust = pid_depth;
