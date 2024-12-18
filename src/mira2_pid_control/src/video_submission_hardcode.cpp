@@ -55,6 +55,8 @@ int main(int argc, char **argv) {
   depth.ki = -0.2;   //-0.2;
   depth.kd = -10.69; //-15.69;
 
+  printf("lilbitchlaky\n");
+
   // Arm Disarm Parameter
   bool arm = false;
   ros::Time init_time = ros::Time::now();
@@ -69,44 +71,102 @@ int main(int argc, char **argv) {
         float pid_depth = depth.pid_control(
             depth_error, (time_now - init_time).toSec(), false);
         std::cout << ((time_now - start_routine).toSec()) << "\n";
-        float delay = 10.0;
+        float delay = 69.0;
         if ((time_now - start_routine).toSec() < delay) {
-          cmd_pwm.forward = 1500;
+          cmd_pwm.arm = false;
+	  cmd_pwm.forward = 1500;
+	  cmd_pwm.mode = "STABILIZE";
           cmd_pwm.lateral = 1500;
-          cmd_pwm.arm = true;
           cmd_pwm.thrust = 1500;
           cmd_pwm.yaw = 1500;
           depth.emptyError();
-        } else if ((time_now - start_routine).toSec() < (delay + 3)) {
+        } else if ((time_now - start_routine).toSec() < (delay + 5)) {
           cmd_pwm.arm = true;
           cmd_pwm.forward = 1500;
           cmd_pwm.lateral = 1500;
           cmd_pwm.thrust = pid_depth;
           cmd_pwm.yaw = 1500;
           std::cout << "sinking ";
-        } else if ((time_now - start_routine).toSec() < (delay + 8)) {
+        } else if ((time_now - start_routine).toSec() < (delay + 10.50)) {
           cmd_pwm.arm = true;
           cmd_pwm.forward = 1800;
           cmd_pwm.lateral = 1500;
           cmd_pwm.thrust = pid_depth;
           cmd_pwm.yaw = 1500;
-          std::cout << "forward";
-        } else if ((time_now - start_routine).toSec() < (delay + 10.25)) {
+          std::cout << "stabilize surge ";
+        } else if ((time_now - start_routine).toSec() < (delay + 13.10)) {
           cmd_pwm.arm = true;
           cmd_pwm.forward = 1500;
           cmd_pwm.lateral = 1500;
           cmd_pwm.thrust = pid_depth;
           cmd_pwm.yaw = 1800;
-          std::cout << "yaw";
-        } else if ((time_now - start_routine).toSec() < (delay + 15.25)) {
+          std::cout << "stabilize yaw ";
+        } else if ((time_now - start_routine).toSec() < (delay + 16.30)) {
           cmd_pwm.arm = true;
           cmd_pwm.forward = 1800;
           cmd_pwm.lateral = 1500;
           cmd_pwm.thrust = pid_depth;
           cmd_pwm.yaw = 1500;
-          std::cout << "forward";
-        } else {
+          std::cout << "stabilize surge ";
+        } else if ((time_now - start_routine).toSec() < (delay + 16.35)) {
+          cmd_pwm.arm = false;
+          cmd_pwm.mode = "STABILIZE";
+          cmd_pwm.forward = 1500;
+          cmd_pwm.lateral = 1500;
+          cmd_pwm.thrust = 1500;
+          cmd_pwm.yaw = 1500;
+          std::cout << "disarm";
+        } else if ((time_now - start_routine).toSec() < (delay + 16.40)) {
+          cmd_pwm.arm = false;
+          cmd_pwm.mode = "MANUAL";
+          cmd_pwm.forward = 1500;
+          cmd_pwm.lateral = 1500;
+          cmd_pwm.thrust = 1500;
+          cmd_pwm.yaw = 1500;
+          std::cout << "change to manual";
+        } else if ((time_now - start_routine).toSec() < (delay + 19.50)) {
           cmd_pwm.arm = true;
+          cmd_pwm.mode = "MANUAL";
+          cmd_pwm.forward = 1800;
+          cmd_pwm.lateral = 1500;
+          cmd_pwm.thrust = 1500;
+          cmd_pwm.yaw = 1500;
+          cmd_pwm.roll = 1850;
+          std::cout << " surge with roll  and manual";
+        } else if ((time_now - start_routine).toSec() < (delay + 19.55)) {
+          cmd_pwm.arm = false;
+          cmd_pwm.mode = "MANUAL";
+          cmd_pwm.forward = 1500;
+          cmd_pwm.lateral = 1500;
+          cmd_pwm.thrust = 1500;
+          cmd_pwm.yaw = 1500;
+          std::cout << "disarm";
+        } else if ((time_now - start_routine).toSec() < (delay + 19.60)) {
+          cmd_pwm.arm = false;
+          cmd_pwm.mode = "STABILIZE";
+          cmd_pwm.forward = 1500;
+          cmd_pwm.lateral = 1500;
+          cmd_pwm.thrust = 1500;
+          cmd_pwm.yaw = 1500;
+          std::cout << "change to stqbilize";
+        } else if ((time_now - start_routine).toSec() < (delay + 21.60)) {
+          cmd_pwm.arm = true;
+          cmd_pwm.mode = "STABILIZE";
+          cmd_pwm.forward = 1500;
+          cmd_pwm.lateral = 1500;
+          cmd_pwm.thrust = pid_depth;
+          cmd_pwm.yaw = 1500;
+          cmd_pwm.roll = 1500;
+          std::cout << "forward";
+        } else if((time_now -start_routine).toSec()<(delay + 25)){
+          cmd_pwm.arm= false;
+          cmd_pwm.forward= 1500;
+          cmd_pwm.lateral=1500;
+          cmd_pwm.thrust = pid_depth;
+          cmd_pwm.yaw=1500;
+          std::cout<<"wait";
+        } else {
+          cmd_pwm.arm = false;
           cmd_pwm.forward = 1500;
           cmd_pwm.lateral = 1500;
           cmd_pwm.thrust = pid_depth;
@@ -122,6 +182,7 @@ int main(int argc, char **argv) {
       cmd_pwm.lateral = 1500;
       cmd_pwm.thrust = 1500;
       cmd_pwm.yaw = 1500;
+      
     }
     pwm_publisher.publish(cmd_pwm);
     ros::spinOnce();

@@ -18,9 +18,9 @@ def main():
             try:
                 Data=int(data.decode('utf').rstrip('\n'))
                 if Data==1:
-                    telemetry_msg.kill_switch = True
-                else:
                     telemetry_msg.kill_switch = False
+                else:
+                    telemetry_msg.kill_switch = True
                 pub.publish(telemetry_msg)
             except ValueError:
                 continue
