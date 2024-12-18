@@ -2,3 +2,5 @@ build/
 devel/
 .catkin_workspace
 src/CMakeLists.txt
+.vscode/
+.clang-format

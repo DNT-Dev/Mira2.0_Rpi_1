@@ -1,9 +1,9 @@
 #include <custom_msgs/commands.h>
 #include <custom_msgs/telemetry.h>
+#include <mira2_pid_control/control_utils.hpp>
 #include <ros/ros.h>
 #include <std_msgs/Char.h>
 #include <std_msgs/Float32MultiArray.h>
-#include <mira2_pid_control/control_utils.hpp>
 /*
     Bot Orientation
     +ve   x  -ve (CCW)
@@ -11,32 +11,21 @@
     y -- bot
     +ve
 */
-/*
-    Old Tuning
-    yaw.kp                              = 0.77;
-    yaw.ki                              = 0.045;
-    yaw.kd                              = 0;
-    depth.kp                            = 1.35;
-    depth.ki                            = 0.266;
-    depth.kd                            = 0.335;
-    // yaw.kp                              = 0.4;
-    // yaw.ki                              = 0.02;
-    // yaw.kd                              = 3.7;
-*/
 
 // Predefined Variables
-#define threshold 8  // degrees
+#define threshold 8 // degrees
 
 // Control parameters and PWM Commands
 bool                  software_arm_flag = false;
 custom_msgs::commands cmd_pwm;
-PID_Controller        depth;
+PID_Controller        depth, yaw;
 double                depth_error;
+int                   yaw_error;
 ros::Time             start_routine;
 /* Keys callback
     Function for tuning the PID parameters
 */
-void keys_callback(const std_msgs::Char::ConstPtr& msg) {
+void keys_callback(const std_msgs::Char::ConstPtr &msg) {
     char key = msg->data;
     if (key == 'q') {
         software_arm_flag = false;
@@ -76,8 +65,8 @@ void keys_callback(const std_msgs::Char::ConstPtr& msg) {
     }
 }
 
-void telemetryCallback(const custom_msgs::telemetry::ConstPtr& msg) {
-    bool   armed          = msg->arm;  // useless
+void telemetryCallback(const custom_msgs::telemetry::ConstPtr &msg) {
+    bool   armed          = msg->arm; // useless
     double depth_external = msg->external_pressure;
     // if (depth_external < RESETDEPTH)
     // {
@@ -86,7 +75,7 @@ void telemetryCallback(const custom_msgs::telemetry::ConstPtr& msg) {
     depth_error = 1069 - depth_external;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
     // ROS Node Declaration
     ros::init(argc, argv, "depth_tuner_controller");
     ros::NodeHandle nh;
@@ -104,9 +93,9 @@ int main(int argc, char** argv) {
     // Control Parameters Definition
 
     // Depth
-    depth.kp = -2;      //-2;
-    depth.ki = -0.2;    //-0.2;
-    depth.kd = -10.69;  //-15.69;
+    depth.kp = -2;     //-2;
+    depth.ki = -0.2;   //-0.2;
+    depth.kd = -10.69; //-15.69;
 
     // depth.kp = -0.48;
     // depth.ki = -3.0;
@@ -132,31 +121,11 @@ int main(int argc, char** argv) {
                 float pid_depth = depth.pid_control(
                     depth_error, (time_now - init_time).toSec(), false);
                 std::cout << ((time_now - start_routine).toSec()) << "\n";
-                if ((time_now - start_routine).toSec() < 8.0) {
-                    cmd_pwm.forward = 1500;
-                    cmd_pwm.lateral = 1500;
-                    cmd_pwm.thrust  = pid_depth;
-                    cmd_pwm.yaw     = 1500;
-                    std::cout << "sinking";
-                } else if ((time_now - start_routine).toSec() < 12.0) {
-                    cmd_pwm.forward = 1600;
-                    cmd_pwm.lateral = 1500;
-                    cmd_pwm.thrust  = pid_depth;
-                    cmd_pwm.yaw     = 1500;
-                    std::cout << "forward";
-                } else if ((time_now - start_routine).toSec() < 18.00) {
-                    cmd_pwm.forward = 1500;
-                    cmd_pwm.lateral = 1500;
-                    cmd_pwm.thrust  = pid_depth;
-                    cmd_pwm.yaw     = 1550;
-                    std::cout << "yaw";
-                } else {
-                    cmd_pwm.forward = 1500;
-                    cmd_pwm.lateral = 1500;
-                    cmd_pwm.thrust  = pid_depth;
-                    cmd_pwm.yaw     = 1500;
-                    std::cout << "pusi";
-                }
+                cmd_pwm.forward = 1500;
+                cmd_pwm.lateral = 1500;
+                cmd_pwm.thrust  = pid_depth;
+                cmd_pwm.yaw     = 1500;
+                std::cout << "sinking";
             }
         } else {
             depth.emptyError();

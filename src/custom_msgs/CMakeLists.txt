@@ -52,6 +52,8 @@ find_package(catkin REQUIRED COMPONENTS
    commands.msg
    telemetry.msg
    esp_telemetry.msg
+   depth.msg 
+   heading.msg
 )
 
 ## Generate services in the 'srv' folder
