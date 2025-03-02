@@ -5,7 +5,7 @@
 class PID_Controller {
 public:
   float safe_pwm = 400;
-  float kp, kd, ki;
+  float kp, kd, ki, base_offset;
   float output_pwm;
   float pwm_prev = 0;
   float prev_d = 0;
@@ -29,36 +29,14 @@ public:
       pid_d = 0;
     }
 
-    pid_i = 6 + ki * pid_i;
-    // if (pid_i > std::max(180 - pid_p - pid_d, float(0.0))) {
-    //    pid_i = (std::max(180 - pid_p - pid_d, float(0.0)));
-    //} else if (pid_i < std::max(-180 - pid_p - pid_d, float(0.0))) {
-    //    pid_i = (std::max(-180 - pid_p - pid_d, float(0.0)));
-    //} else {
-    //    pid_i = pid_i;
-    //}
-    // std::cout << pid_i << "\n";
+    pid_i = ki * pid_i;
+    
     output_pwm = pid_p + pid_d + pid_i;
-    if (output_pwm > safe_pwm) {
+    output_pwm = base_offset + output_pwm;
+    if (output_pwm > (1500+safe_pwm)) {
       output_pwm = safe_pwm;
-    } else if (output_pwm < -safe_pwm) {
+    } else if (output_pwm < (1500-safe_pwm)) {
       output_pwm = -safe_pwm;
-    }
-    if (switch_polarity) {
-      if (output_pwm < 0) {
-        output_pwm = 1100 + (output_pwm + 180) * (384) / 180;
-      } else {
-        output_pwm = 1900 - (-1 * output_pwm + 180) * (384) / 180;
-      }
-      // output_pwm             = 1100 + (output_pwm+180)*(800)/360;
-    } else {
-      // std::cout << pid_i << "\n";
-      if (output_pwm < 0) {
-        output_pwm = 1900 - (output_pwm + 180) * (384) / 180;
-      } else {
-        output_pwm = 1100 + (-1 * output_pwm + 180) * (384) / 180;
-      }
-      // output_pwm             = 1900 - (output_pwm+180)*(800)/360;
     }
     prev_d = pid_d;
     pwm_prev = output_pwm;

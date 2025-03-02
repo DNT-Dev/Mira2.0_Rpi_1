@@ -1,4 +1,3 @@
 <launch>
-    <node name="pymavlink_commands" pkg="pymavlink_master" type="atlernate_pymavlink_commands.py" output="screen" />
-    <node name="kill_publisher" pkg="pymavlink_master" type="esp_data_publisher.py" output="screen" /> 
+    <node name="pymavlink_commands" pkg="pymavlink_master" type="alternate_pymavlink_commands.py" output="screen" />
 </launch>

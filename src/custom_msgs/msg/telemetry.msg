@@ -6,6 +6,9 @@ int32 imu_gyro_x
 int32 imu_gyro_y
 int32 imu_gyro_z
 
+int32 imu_xacc
+int32 imu_yacc
+int32 imu_zacc
 
 
 int32 imu_gyro_compass_x

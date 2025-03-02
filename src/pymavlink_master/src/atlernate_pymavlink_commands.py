@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 from optparse import OptionParser
 import rospy
+from pymavlink.dialects.v10 import ardupilotmega
 from pymavlink import mavutil
-from custom_msgs.msg import commands, telemetry, esp_telemetry
+from custom_msgs.msg import commands, telemetry, emergency_kill
 from std_srvs.srv import Empty, EmptyResponse
 # Constants for channel mappings
 # 1   Pitch
@@ -28,8 +29,15 @@ class PixhawkMaster:
         self.pixhawk_port = options.port_addr
         self.arm_state = False
         self.autonomy_switch = False
+        
         # Initialize MAVLink connection
         self.master = mavutil.mavlink_connection(self.pixhawk_port, baud=115200)
+        self.sys_status_msg = ardupilotmega.MAVLink_sys_status_message
+        self.imu_msg = ardupilotmega.MAVLink_scaled_imu2_message
+        self.attitude_msg = ardupilotmega.MAVLink_attitude_quaternion_message
+        self.vfr_hud_msg = ardupilotmega.MAVLink_vfr_hud_message
+        self.depth_msg = ardupilotmega.MAVLink_scaled_pressure2_message
+        self.thruster_pwms_msg = ardupilotmega.MAVLink_servo_output_raw_message 
 
         # ROS subscriber and publisher
         self.thruster_subs = rospy.Subscriber(
@@ -39,10 +47,10 @@ class PixhawkMaster:
             "/master/telemetry", telemetry, queue_size=1
         )
         self.thruster_subs_rov = rospy.Subscriber(
-            "/rov/commands", commands, self.rov_callback, queue_size=1
+            "/master/commands", commands, self.rov_callback, queue_size=1
         )
         self.kill_sub = rospy.Subscriber(
-            "/esp/telemetry", esp_telemetry, self.kill_callback, queue_size=1
+            "/emergency_stop", emergency_kill, self.kill_callback, queue_size=1
         )
         self.autonomy_service = rospy.Service("/mira/switch", Empty, self.service_callback)
         self.channel_ary = [1500] * 8  # Initialize channel values array
@@ -237,28 +245,40 @@ class PixhawkMaster:
         else:
             rospy.logerr("Command Failed")
 
-    def telem_publish_func(self, sys_status_msg, imu_msg, attitude_msg, vfr_hud_msg, depth_msg):
+    def telem_publish_func(self, timestamp_now):
         """
         Publish telemetry data based on received MAVLink messages.
         """
         self.telem_msg.arm = self.arm_state
-        self.telem_msg.battery_voltage = (sys_status_msg.voltage_battery)/1000
-        self.telem_msg.timestamp = imu_msg.time_boot_ms
-        self.telem_msg.internal_pressure = vfr_hud_msg.alt
-        self.telem_msg.external_pressure = depth_msg.press_abs
-        self.telem_msg.heading = vfr_hud_msg.heading
-        self.telem_msg.imu_gyro_x = imu_msg.xgyro
-        self.telem_msg.imu_gyro_y = imu_msg.ygyro
-        self.telem_msg.imu_gyro_z = imu_msg.zgyro
-        self.telem_msg.imu_gyro_compass_x = imu_msg.xmag
-        self.telem_msg.imu_gyro_compass_y = imu_msg.ymag
-        self.telem_msg.q1 = attitude_msg.q1
-        self.telem_msg.q2 = attitude_msg.q2
-        self.telem_msg.q3 = attitude_msg.q3
-        self.telem_msg.q4 = attitude_msg.q4
-        self.telem_msg.rollspeed = attitude_msg.rollspeed
-        self.telem_msg.pitchspeed = attitude_msg.pitchspeed
-        self.telem_msg.yawspeed = attitude_msg.yawspeed
+        self.telem_msg.battery_voltage = (self.sys_status_msg.voltage_battery)/1000
+        self.telem_msg.timestamp = timestamp_now
+        self.telem_msg.internal_pressure = self.vfr_hud_msg.alt
+        self.telem_msg.external_pressure = self.depth_msg.press_abs
+        self.telem_msg.heading = self.vfr_hud_msg.heading
+        self.telem_msg.imu_xacc = self.imu_msg.xacc
+        self.telem_msg.imu_yacc = self.imu_msg.yacc
+        self.telem_msg.imu_zacc = self.imu_msg.zacc 
+        self.telem_msg.imu_gyro_x = self.imu_msg.xgyro
+        self.telem_msg.imu_gyro_y = self.imu_msg.ygyro
+        self.telem_msg.imu_gyro_z = self.imu_msg.zgyro
+        self.telem_msg.imu_gyro_compass_x = self.imu_msg.xmag
+        self.telem_msg.imu_gyro_compass_y = self.imu_msg.ymag
+        self.telem_msg.q1 = self.attitude_msg.q1
+        self.telem_msg.q2 = self.attitude_msg.q2
+        self.telem_msg.q3 = self.attitude_msg.q3
+        self.telem_msg.q4 = self.attitude_msg.q4
+        self.telem_msg.rollspeed = self.attitude_msg.rollspeed
+        self.telem_msg.pitchspeed = self.attitude_msg.pitchspeed
+        self.telem_msg.yawspeed = self.attitude_msg.yawspeed
+        self.telem_msg.thruster_pwms[0] =   self.thruster_pwms_msg.servo1_raw
+        self.telem_msg.thruster_pwms[1] =   self.thruster_pwms_msg.servo2_raw
+        self.telem_msg.thruster_pwms[2] =   self.thruster_pwms_msg.servo3_raw
+        self.telem_msg.thruster_pwms[3] =   self.thruster_pwms_msg.servo4_raw
+        self.telem_msg.thruster_pwms[4] =   self.thruster_pwms_msg.servo5_raw
+        self.telem_msg.thruster_pwms[5] =   self.thruster_pwms_msg.servo6_raw
+        self.telem_msg.thruster_pwms[6] =   self.thruster_pwms_msg.servo7_raw
+        self.telem_msg.thruster_pwms[7] =   self.thruster_pwms_msg.servo8_raw
+
 
         if((self.telem_msg.battery_voltage)<15):
 #            rospy.logwarn(f"Battery Critically Low: {self.telem_msg.battery_voltage}V")
@@ -296,27 +316,42 @@ if __name__ == "__main__":
     obj = PixhawkMaster()
 
     # Request message intervals
-    obj.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SYS_STATUS, 100)
-    obj.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_HEARTBEAT, 100)
-    obj.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ATTITUDE_QUATERNION, 100)
-    obj.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_AHRS2, 100)
-    obj.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SCALED_PRESSURE2, 100)
-    obj.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_VFR_HUD, 100)
-    obj.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SCALED_IMU2, 100)
+    obj.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SYS_STATUS, 300)
+    obj.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ATTITUDE_QUATERNION, 300)
+    obj.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SCALED_PRESSURE2, 300)
+    obj.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_VFR_HUD, 300)
+    obj.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SCALED_IMU2, 300)
+    obj.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 300)    
+    try:
+        # Receive MAVLink messages
+        obj.sys_status_msg = obj.master.recv_match(type='SYS_STATUS',blocking=True)
+        obj.imu_msg = obj.master.recv_match(type="SCALED_IMU2", blocking=True)
+        obj.attitude_msg = obj.master.recv_match(type="ATTITUDE_QUATERNION", blocking=True)
+        obj.vfr_hud_msg = obj.master.recv_match(type="VFR_HUD", blocking=True)
+        obj.depth_msg = obj.master.recv_match(type="SCALED_PRESSURE2", blocking=True)
+        obj.thruster_pwms_msg = obj.master.recv_match(type= "SERVO_OUTPUT_RAW",blocking = True)
+        rospy.loginfo("All messages Recieved once")
+    except Exception as e:
+        rospy.logwarn(f"Error receiving all messages: {e}")
+        exit()
 
     # Main loop
     while not rospy.is_shutdown():
         obj.actuate()
         try:
             # Receive MAVLink messages
-            msg_sys_status = obj.master.recv_match(type='SYS_STATUS',blocking=True)
-            msg_imu = obj.master.recv_match(type="SCALED_IMU2", blocking=True)
-            msg_attitude = obj.master.recv_match(type="ATTITUDE_QUATERNION", blocking=True)
-            msg_vfr_hud = obj.master.recv_match(type="VFR_HUD", blocking=True)
-            msg_depth = obj.master.recv_match(type="SCALED_PRESSURE2", blocking=True)
+            obj.sys_status_msg = obj.master.recv_match(type='SYS_STATUS',blocking=True)
+            obj.imu_msg = obj.master.recv_match(type="SCALED_IMU2", blocking=True)
+            obj.attitude_msg = obj.master.recv_match(type="ATTITUDE_QUATERNION", blocking=True)
+            obj.vfr_hud_msg = obj.master.recv_match(type="VFR_HUD", blocking=True)
+            obj.depth_msg = obj.master.recv_match(type="SCALED_PRESSURE2", blocking=True)
+            obj.thruster_pwms_msg = obj.master.recv_match(type= "SERVO_OUTPUT_RAW",blocking = True)
+            # Publish telemetry data
+            
         except Exception as e:
             rospy.logwarn(f"Error receiving message: {e}")
             continue
 
-        # Publish telemetry data
-        obj.telem_publish_func(msg_sys_status, msg_imu, msg_attitude, msg_vfr_hud, msg_depth)
+        timestamp_now = rospy.get_time()
+        obj.telem_publish_func(timestamp_now)
+

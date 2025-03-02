@@ -1,0 +1,25 @@
+image_width: 640
+image_height: 480
+camera_name: cam_down
+
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [995.2521196, 0.0, 334.268641, 0.0, 1007.5765636, 302.557827, 0.0, 0.0, 1.0]
+
+distortion_model: plumb_bob
+distortion_coefficients:
+  rows: 1
+  cols: 5
+  data: [0.8071020, -1.782215, 0.0745810, -0.01566, 0.0]
+
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [995.2521196, 0.0, 334.268641, 0.0, 0.0, 1007.5765636, 302.557827, 0.0, 0.0, 0.0, 1.0, 0.0]
+
