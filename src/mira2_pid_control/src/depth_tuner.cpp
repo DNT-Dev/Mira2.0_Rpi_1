@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
 
     // ROS Publisher
     ros::Publisher pwm_publisher =
-        nh.advertise<custom_msgs::commands>("/rov/commands", 1);
+        nh.advertise<custom_msgs::commands>("/master/commands", 1);
 
     // ROS Subscriber
     ros::Subscriber keys_subscriber = nh.subscribe("keys", 1, keys_callback);

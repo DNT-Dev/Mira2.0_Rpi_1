@@ -40,9 +40,6 @@ class PixhawkMaster:
         self.thruster_pwms_msg = ardupilotmega.MAVLink_servo_output_raw_message 
 
         # ROS subscriber and publisher
-        self.thruster_subs = rospy.Subscriber(
-            "/master/commands", commands, self.__callback__, queue_size=1
-        )
         self.telemetry_pub = rospy.Publisher(
             "/master/telemetry", telemetry, queue_size=1
         )
