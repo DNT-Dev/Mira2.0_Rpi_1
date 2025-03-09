@@ -12,6 +12,7 @@ public:
   float pid_p, pid_i, pid_d = 0;
   std::vector<float> error_vector;
   float pid_control(float error, float dtime, bool switch_polarity) {
+    //std::cout<<"\n"<<dtime<<" "<<error<<"\n";
     time.push_back(dtime);
     error_vector.push_back(error);
     pid_p = (kp * error);
@@ -30,13 +31,13 @@ public:
     }
 
     pid_i = ki * pid_i;
-    
+    //std::cout<<pid_p<<" "<<pid_d<<" "<<pid_i<<"\n";
     output_pwm = pid_p + pid_d + pid_i;
     output_pwm = base_offset + output_pwm;
     if (output_pwm > (1500+safe_pwm)) {
-      output_pwm = safe_pwm;
+      output_pwm = 1500 + safe_pwm;
     } else if (output_pwm < (1500-safe_pwm)) {
-      output_pwm = -safe_pwm;
+      output_pwm = 1500 - safe_pwm;
     }
     prev_d = pid_d;
     pwm_prev = output_pwm;

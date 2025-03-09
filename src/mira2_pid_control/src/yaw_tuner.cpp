@@ -29,40 +29,49 @@ void keys_callback(const std_msgs::Char::ConstPtr &msg) {
     char key = msg->data;
     if (key == 'q') {
         software_arm_flag = false;
-        // cmd_pwm.arm = false;
+        cmd_pwm.arm = false;
         std::cout << "unarmed\n";
         start_routine = ros::Time::now();
         depth.emptyError();
+	yaw.emptyError();
     } else if (key == 'p') {
         software_arm_flag = true;
-        // cmd_pwm.arm = true;
+        cmd_pwm.arm = true;
         std::cout << "armed\n";
         start_routine = ros::Time::now();
     } else if (key == 'w') {
-        depth.kp = depth.kp + 0.2;
-        std::cout << "current depth kp value: " + std::to_string(depth.kp)
+        yaw.kp = yaw.kp + 0.2;
+        std::cout << "current yaw kp value: " + std::to_string(yaw.kp)
                   << std::endl;
     } else if (key == 's') {
-        depth.kp = depth.kp - 0.05;
-        std::cout << "current depth kp value: " + std::to_string(depth.kp)
+        yaw.kp = yaw.kp - 0.05;
+        std::cout << "current yaw kp value: " + std::to_string(yaw.kp)
                   << std::endl;
     } else if (key == 'e') {
-        depth.ki = depth.ki + 0.005;
-        std::cout << "current depth ki value: " + std::to_string(depth.ki)
+        yaw.ki = yaw.ki + 0.005;
+        std::cout << "current yaw ki value: " + std::to_string(yaw.ki)
                   << std::endl;
     } else if (key == 'd') {
-        depth.ki = depth.ki - 0.001;
-        std::cout << "current depth ki value: " + std::to_string(depth.ki)
+        yaw.ki = yaw.ki - 0.001;
+        std::cout << "current yaw ki value: " + std::to_string(yaw.ki)
                   << std::endl;
     } else if (key == 'r') {
-        depth.kd = depth.kd + 0.1;
-        std::cout << "current depth kd value: " + std::to_string(depth.kd)
+        yaw.kd = yaw.kd + 0.1;
+        std::cout << "current yaw kd value: " + std::to_string(yaw.kd)
                   << std::endl;
     } else if (key == 'f') {
-        depth.kd = depth.kd - 0.1;
-        std::cout << "current depth kd value: " + std::to_string(depth.kd)
+        yaw.kd = yaw.kd - 0.1;
+        std::cout << "current yaw kd value: " + std::to_string(yaw.kd)
                   << std::endl;
     }
+    else if (key == 'j'){
+	   
+	    yaw_setpoint = yaw_setpoint + 45;
+	    if(yaw_setpoint > 360){
+		    yaw_setpoint = 0;
+	    }
+	std::cout<<"Current yaw setpoint is " + std::to_string(yaw_setpoint);
+	}
 }
 
 void telemetryCallback(const custom_msgs::telemetry::ConstPtr &msg) {
@@ -74,7 +83,7 @@ void telemetryCallback(const custom_msgs::telemetry::ConstPtr &msg) {
     //     reseting = false;
     // }
     depth_error = depth_setpoint - depth_external;
-    yaw_error = yaw_setpoint - yaw_heading;
+  yaw_error = fmod((yaw_setpoint - yaw_heading + 180),360) - 180;
 }
 
 int main(int argc, char **argv) {
@@ -95,17 +104,18 @@ int main(int argc, char **argv) {
     // Control Parameters Definition
 
     // Depth
-    depth.kp = 5.8;     
-    depth.ki = 0;   
-    depth.kd = 20; 
+    depth.kp = 5.5000;     
+    depth.ki = 0.013;   
+    depth.kd = 31.5000; 
     depth.base_offset = 1580;
     depth_setpoint = 1069;
 
-    yaw.kp = 0;     
-    yaw.ki = 0;   
-    yaw.kd = 0; 
+    yaw.kp = 3.18;     
+    yaw.ki = 0.01;   
+    yaw.kd = 7.2; 
     yaw.base_offset = 1500; //this is 1500 only
-    yaw_setpoint = 90;   //see headings dumdums
+    yaw_setpoint = 200;   //see headings dumdums
+
 
 
     // Arm Disarm Parameter
@@ -118,21 +128,39 @@ int main(int argc, char **argv) {
             cmd_pwm.mode       = "STABILIZE";
             ros::Time time_now = ros::Time::now();
             cmd_pwm.arm        = true;
-            if (software_arm_flag == true) {
+            if (software_arm_flag == true && (time_now - start_routine).toSec() < 5) {
                 float pid_depth = depth.pid_control(
                     depth_error, (time_now - init_time).toSec(), false);
-                
+		//std::cout<<yaw_error<<"\n";
                 float pid_yaw = yaw.pid_control(
                     yaw_error, (time_now - init_time).toSec(), false);
-                std::cout <<" "<<pid_depth<<" "<<pid_yaw<<"\n";  // ((time_now - start_routine).toSec()) << "\n";
+                //std::cout <<pid_yaw<<"\n";  // ((time_now - start_routine).toSec()) << "\n";
                 cmd_pwm.forward = 1500;
                 cmd_pwm.lateral = 1500;
                 cmd_pwm.thrust  = pid_depth;
                 cmd_pwm.yaw     = 1500;
                 std::cout << "sinking";
+		
             }
+
+	     if(software_arm_flag == true && (time_now - start_routine).toSec()> 5) {
+ 		float pid_depth = depth.pid_control(
+                    depth_error, (time_now - init_time).toSec(), false);
+		//std::cout<<yaw_error<<"\n";
+                float pid_yaw = yaw.pid_control(
+                    yaw_error, (time_now - init_time).toSec(), false);
+		//std::cout<<pid_yaw<<"\n";
+                //std::cout <<" "<<pid_depth<<" "<<pid_yaw<<"\n";  // ((time_now - start_routine).toSec()) << "\n";
+                cmd_pwm.forward = 1500;
+                cmd_pwm.lateral = 1500;
+                cmd_pwm.thrust  = pid_depth;
+                cmd_pwm.yaw     = pid_yaw;
+                std::cout << "yawing";
+		
+	    }
         } else {
             depth.emptyError();
+	    yaw.emptyError();
             cmd_pwm.arm     = false;
             cmd_pwm.mode    = "STABILIZE";
             cmd_pwm.forward = 1500;
